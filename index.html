@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة الأسهم لتعديل متوسط الشراء</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            max-width: 500px;
+            width: 100%;
+        }
+        label {
+            font-size: 18px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 90%;
+            font-weight: bold;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .button-container button {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button-container button.calculate {
+            flex: 2;
+            background-color: #28a745;
+            color: white;
+        }
+        .button-container button.calculate:hover {
+            background-color: #218838;
+        }
+        .button-container button.clear {
+            background-color: #dc3545;
+            color: white;
+        }
+        .button-container button.clear:hover {
+            background-color: #c82333;
+        }
+        .button-container button.about-button {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .button-container button.about-button:hover {
+            background-color: #138496;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+        .export-options {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .export-options button {
+            margin: 5px;
+            flex: 1 1 45%;
+        }
+        .export-options button.whatsapp {
+            background-color: #25d366;
+        }
+        .export-options button.email {
+            background-color: #007bff;
+        }
+        .export-options button.download {
+            background-color: #6c757d;
+        }
+        .formatted-amount {
+            font-weight: bold;
+            margin: 15px 0;
+            display: block;
+        }
+        .formatted-amount .purchase-text {
+            color: #007bff;
+            margin-right: 20px;
+        }
+        .formatted-amount .amount-value {
+            color: #d35400;
+        }
+        .formatted-amount .currency {
+            color: #d35400;
+        }
+        .result-summary {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .popup-content {
+            text-align: center;
+        }
+        .popup-close {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .signature {
+            margin-top: 10px;
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>حاسبة الأسهم لتعديل متوسط الشراء</h1>
+        <label for="totalAmount">المبلغ الإجمالي:</label>
+        <input type="text" id="totalAmount" placeholder="أدخل المبلغ الإجمالي" oninput="formatInput(this)" inputmode="numeric">
+        <br>
+        <label for="splitTimes">عدد مرات التقسيم:</label>
+        <input type="number" id="splitTimes" placeholder="أدخل عدد المرات" oninput="formatInput(this)" inputmode="numeric" max="10">
+        <br>
+        <div class="button-container">
+            <button class="calculate" onclick="calculate()">حساب</button>
+            <button class="clear" onclick="clearData()">مسح البيانات</button>
+            <button class="about-button" onclick="showAbout()">نبذة عن البرنامج</button>
+        </div>
+        <div class="result" id="result"></div>
+        <div class="export-options" id="exportOptions" style="display: none;">
+            <button class="whatsapp" onclick="shareViaWhatsApp()">مشاركة عبر واتساب</button>
+            <button class="email" onclick="shareViaEmail()">مشاركة عبر البريد</button>
+            <button class="download" onclick="downloadResult()">تنزيل النتائج</button>
+        </div>
+    </div>
+
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <p>حاسبة التقسيم تساعدك على تعديل متوسط شراء الأسهم بتقسيم المبلغ الإجمالي إلى أجزاء مضاعفة. يمكنك تحديد عدد المرات وتقسيم المبلغ لتحقيق متوسط شراء أفضل.</p>
+            <div class="signature">أسهم نقية أبو إبراهيم</div>
+            <button class="popup-close" onclick="closePopup()">إغلاق</button>
+        </div>
+    </div>
+
+    <script>
+        function formatNumber(number) {
+            return new Intl.NumberFormat('en-US').format(number);
+        }
+
+        function removeCommas(numberString) {
+            return numberString.replace(/,/g, '');
+        }
+
+        function formatInput(input) {
+            let value = removeCommas(input.value);
+            value = value.replace(/[٠-٩]/g, '');
+            if (!isNaN(value) && value !== '') {
+                input.value = formatNumber(parseFloat(value));
+            } else {
+                input.value = '';
+            }
+        }
+
+        window.onload = function () {
+            const savedData = localStorage.getItem('savedData');
+            if (savedData) {
+                const { totalAmount, splitTimes, parts } = JSON.parse(savedData);
+                document.getElementById('totalAmount').value = formatNumber(totalAmount);
+                document.getElementById('splitTimes').value = formatNumber(splitTimes);
+                displayResults(totalAmount, splitTimes, parts);
+                document.getElementById('exportOptions').style.display = 'flex';
+            }
+        };
+
+        function calculate() {
+            const totalAmount = parseFloat(removeCommas(document.getElementById('totalAmount').value));
+            let splitTimes = parseInt(removeCommas(document.getElementById('splitTimes').value));
+
+            // التحقق من أن عدد مرات التقسيم لا يتجاوز 10
+            if (splitTimes > 10) {
+                alert("عدد مرات التقسيم لا يمكن أن يكون أكثر من 10!");
+                splitTimes = 10;
+                document.getElementById('splitTimes').value = formatNumber(splitTimes);
+            }
+
+            if (isNaN(totalAmount) || isNaN(splitTimes) || totalAmount <= 0 || splitTimes <= 0) {
+                alert("يرجى إدخال قيم صحيحة!");
+                return;
+            }
+
+            let parts = [];
+            let currentAmount = totalAmount;
+
+            for (let i = 0; i < splitTimes; i++) {
+                let part = currentAmount / 2;
+                parts.push(part);
+                currentAmount = part;
+            }
+
+            parts.reverse();
+
+            const dataToSave = { totalAmount, splitTimes, parts };
+            localStorage.setItem('savedData', JSON.stringify(dataToSave));
+
+            displayResults(totalAmount, splitTimes, parts);
+            document.getElementById('exportOptions').style.display = 'flex';
+        }
+
+        function displayResults(totalAmount, splitTimes, parts) {
+            const formattedParts = parts.map((part, index) => `
+                <div class="formatted-amount">
+                    <span class="purchase-text">مبلغ لشراء ${index + 1}</span>
+                    <span class="amount-value">${formatNumber(part.toFixed(2))}</span>
+                    <span class="currency">ريال سعودي</span>
+                </div>
+            `).join('');
+
+            document.getElementById('result').innerHTML = `
+                <div class="result-summary">
+                    <strong>المبلغ الإجمالي:</strong> ${formatNumber(totalAmount)} ريال سعودي<br>
+                    <strong>عدد مرات التقسيم:</strong> ${splitTimes}
+                </div>
+                <strong>نتائج التقسيم لتعديل متوسط الشراء</strong><br>
+                ${formattedParts}
+            `;
+        }
+
+        function clearData() {
+            localStorage.removeItem('savedData');
+            document.getElementById('totalAmount').value = '';
+            document.getElementById('splitTimes').value = '';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('exportOptions').style.display = 'none';
+        }
+
+        function captureResult() {
+            return new Promise((resolve, reject) => {
+                html2canvas(document.querySelector(".result")).then(canvas => {
+                    canvas.toBlob(blob => {
+                        resolve(blob);
+                    }, 'image/png');
+                });
+            });
+        }
+
+        async function shareViaWhatsApp() {
+            try {
+                const blob = await captureResult();
+                const file = new File([blob], "result.png", { type: "image/png" });
+                const url = URL.createObjectURL(file);
+                const message = "نتائج التقسيم لتعديل متوسط الشراء:";
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`, '_blank');
+            } catch (error) {
+                alert("حدث خطأ أثناء مشاركة النتائج عبر واتساب!");
+            }
+        }
+
+        async function shareViaEmail() {
+            try {
+                const blob = await captureResult();
+                const file = new File([blob], "result.png", { type: "image/png" });
+                const subject = "نتائج التقسيم لتعديل متوسط الشراء";
+                const body = "نتائج التقسيم لتعديل متوسط الشراء:";
+                const formData = new FormData();
+                formData.append("file", file);
+                const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.location.href = url;
+            } catch (error) {
+                alert("حدث خطأ أثناء مشاركة النتائج عبر البريد!");
+            }
+        }
+
+        async function downloadResult() {
+            try {
+                const blob = await captureResult();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'نتائج_التقسيم.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert("حدث خطأ أثناء تنزيل النتائج!");
+            }
+        }
+
+        function showAbout() {
+            document.getElementById('popup').style.display = 'block';
+            document.getElementById('popupOverlay').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('popup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
